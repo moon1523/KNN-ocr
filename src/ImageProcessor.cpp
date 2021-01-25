@@ -16,12 +16,14 @@ public:
 
 ImageProcessor::ImageProcessor(const Config& config) :
 		_config(config), _debugWindow(false), _debugSkew(false), _debugDigits(false), _debugEdges(false),
-		_key(0), powerOn(false) {
+		_key(0), powerOn(false), _ocrkVmA(false) {
 }
 
 void ImageProcessor::setInput(cv::Mat& img) { _img = img; }
 
 const std::vector<cv::Mat>& ImageProcessor::getOutput() { return _digits; }
+const std::vector<cv::Mat>& ImageProcessor::getOutputkV() { return _digits_kV; }
+const std::vector<cv::Mat>& ImageProcessor::getOutputmA() { return _digits_mA; }
 
 void ImageProcessor::debugWindow(bool bval) {
 	_debugWindow = bval;
@@ -32,6 +34,8 @@ void ImageProcessor::debugWindow(bool bval) {
 void ImageProcessor::debugSkew(bool bval) { _debugSkew = bval; }
 void ImageProcessor::debugEdges(bool bval) { _debugEdges = bval; }
 void ImageProcessor::debugDigits(bool bval) { _debugDigits = bval; }
+void ImageProcessor::debugPower(bool bval) { _debugDigits = bval; }
+void ImageProcessor::ocrkVmA(bool bval) { _ocrkVmA = bval; }
 
 int ImageProcessor::showImage() {
 	cv::imshow("ImageProcessor", _img);
@@ -63,9 +67,11 @@ void ImageProcessor::process() {
 	}
 }
 
-void ImageProcessor::process(ROIBox* roi)
+bool ImageProcessor::process(ROIBox* roi)
 {
 	_digits.clear();
+	_digits_kV.clear();
+	_digits_mA.clear();
 
 	// convert to gray
 	cvtColor(_img, _imgGray, cv::COLOR_BGR2GRAY);
@@ -85,6 +91,8 @@ void ImageProcessor::process(ROIBox* roi)
 	if (_debugWindow) {
 		showImage();
 	}
+
+	return powerOn;
 }
 
 void ImageProcessor::rotate(double rotationDegrees) {
@@ -234,14 +242,17 @@ void ImageProcessor::findCounterDigits() {
     }
 }
 
-void ImageProcessor::findCounterDigits(ROIBox* _roi)
+bool ImageProcessor::findCounterDigits(ROIBox* _roi)
 {
 	cv::Mat edges = binaryFiltering();
 	if (_debugEdges) {
 		cv::imshow("edges", edges);
 	}
+
+
 	cv::Mat powerScreen = edges(_roi->getROIBox()[_roi->getROIBox().size()-1]); // last ROI box must be power screen.
 
+	powerOn = false;
 	for (int i=0; i<powerScreen.cols; i++) {
 		for (int j=0; j<powerScreen.rows; j++) {
 			uchar b = powerScreen.at<cv::Vec3b>(i,j)[0];
@@ -251,6 +262,8 @@ void ImageProcessor::findCounterDigits(ROIBox* _roi)
 		}
 		if(powerOn) break;
 	}
+
+
 
 	cv::Mat img_ret = edges.clone();
 
@@ -262,7 +275,6 @@ void ImageProcessor::findCounterDigits(ROIBox* _roi)
 	//filter contours by bounding rect size
 	filterContours(contours, boundingBoxes, filteredContours);
 
-
 	// sort bounding boxes from left to right
 	std::sort(boundingBoxes.begin(), boundingBoxes.end(), sortRectByX());
 
@@ -273,12 +285,44 @@ void ImageProcessor::findCounterDigits(ROIBox* _roi)
 		cv::imshow("contours", cont);
 	}
 
+
 	// cut out found rectangles from edged image
 	for (int i = 0; i < boundingBoxes.size(); ++i) {
 		cv::Rect roi = boundingBoxes[i];
 		_digits.push_back(img_ret(roi));
+
 		if (_debugDigits) {
-			cv::rectangle(_img, roi, cv::Scalar(0, 255, 0), 2);
+			cv::rectangle(_img, roi, cv::Scalar(0, 255, 0), 1);
 		}
 	}
+
+
+	if (_ocrkVmA) {
+		cv::Mat voltScreen  = edges(_roi->getROIBox()[0]);
+		cv::Mat currScreen  = edges(_roi->getROIBox()[1]);
+
+		std::vector<std::vector<cv::Point>> kVcontours, kVfilteredContours;
+		std::vector<cv::Rect> kVboundingBoxes;
+		cv::findContours(voltScreen, kVcontours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+		filterContours(kVcontours, kVboundingBoxes, kVfilteredContours);
+		std::sort(kVboundingBoxes.begin(), kVboundingBoxes.end(), sortRectByX());
+
+		for (int i=0; i < kVboundingBoxes.size(); ++i) {
+			cv::Rect kVroi = kVboundingBoxes[i];
+			_digits_kV.push_back(voltScreen(kVroi));
+		}
+
+		std::vector<std::vector<cv::Point>> mAcontours, mAfilteredContours;
+		std::vector<cv::Rect> mAboundingBoxes;
+		cv::findContours(currScreen, mAcontours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_NONE);
+		filterContours(mAcontours, mAboundingBoxes, mAfilteredContours);
+		std::sort(mAboundingBoxes.begin(), mAboundingBoxes.end(), sortRectByX());
+
+		for (int i=0; i < mAboundingBoxes.size(); ++i) {
+			cv::Rect mAroi = mAboundingBoxes[i];
+			_digits_mA.push_back(currScreen(mAroi));
+		}
+	}
+
+	return powerOn;
 }

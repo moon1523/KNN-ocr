@@ -15,7 +15,7 @@ class ROIBox
 public:
 	ROIBox() : roiBox(0) { }
 	std::vector<cv::Rect> getROIBox() { return roiBox; }
-	void setROIBox(std::vector<cv::Rect>& _roiBox) { roiBox = _roiBox; std::cout<<roiBox.size()<<std::endl; }
+	void setROIBox(std::vector<cv::Rect>& _roiBox) { roiBox = _roiBox; std::cout << "ROI box #: " << roiBox.size() << std::endl; }
 private:
 	std::vector<cv::Rect> roiBox;
 };
@@ -27,23 +27,28 @@ public:
 	void setOrientation(int rotationDegrees);
 	void setInput(cv::Mat& img);
 	void process();
-	void process(ROIBox* roi);
+	bool process(ROIBox* roi);
 	const std::vector<cv::Mat>& getOutput();
+	const std::vector<cv::Mat>& getOutputkV();
+	const std::vector<cv::Mat>& getOutputmA();
 
 	void debugWindow(bool bval = true);
 	void debugSkew(bool bval = true);
 	void debugEdges(bool bval = true);
 	void debugDigits(bool bval = true);
+	void debugPower(bool bval = true);
+	void ocrkVmA(bool bval = true);
 	int  showImage();
 	void saveConfig();
 	void loadConfig();
 
 	int getKey() { return _key; }
+	bool getpowerOn() { return powerOn; }
 
 private:
 	void rotate(double rotationDegrees);
 	void findCounterDigits();
-	void findCounterDigits(ROIBox* roi);
+	bool findCounterDigits(ROIBox* roi);
 	void findAlignedBoxes(std::vector<cv::Rect>::const_iterator begin,
 						  std::vector<cv::Rect>::const_iterator end, std::vector<cv::Rect>& result);
 	float detectSkew();
@@ -59,11 +64,15 @@ private:
 	cv::Mat _imgGray;
 	cv::Mat _imgBin;
 	std::vector<cv::Mat> _digits;
+	std::vector<cv::Mat> _digits_kV;
+	std::vector<cv::Mat> _digits_mA;
 	Config _config;
 	bool _debugWindow;
 	bool _debugSkew;
 	bool _debugEdges;
 	bool _debugDigits;
+	bool _debugPower;
+	bool _ocrkVmA;
 	bool powerOn;
 
 	int _key;

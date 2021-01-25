@@ -26,8 +26,8 @@ static void testOcr(ImageInput* pImageInput) {
     ImageProcessor proc(config);
     proc.debugWindow();
     proc.debugDigits();
-
-    Plausi plausi;
+    proc.ocrkVmA();
+    proc.debugPower();
 
     KNearestOcr ocr(config);
     if (! ocr.loadTrainingData()) {
@@ -50,14 +50,26 @@ static void testOcr(ImageInput* pImageInput) {
 		}
     	proc.setInput(imgCopy);
         proc.process(roi);
+        bool powerOn = proc.getpowerOn();
 
-        std::string result = ocr.recognize(proc.getOutput());
-        std::cout << result << std::endl;
-//        if (plausi.check(result, pImageInput->getTime())) {
-//            std::cout << "  " << std::fixed << std::setprecision(1) << plausi.getCheckedValue() << std::endl;
-//        } else {
-            std::cout << "  -------" << std::endl;
-//        }
+
+
+
+        std::cout << ">> Voltage OCR" << std::endl;
+        std::string voltage = ocr.recognize(proc.getOutputkV());
+        std::cout << ">> Current OCR" << std::endl;
+        std::string current = ocr.recognize(proc.getOutputmA());
+        std::cout << "*****************" << std::endl;
+        if(powerOn)	std::cout << "Power Status: On" << std::endl;
+		else		std::cout << "Power Status: Off" << std::endl;
+        std::cout << "Tube voltage (kV) : " << voltage << std::endl;
+        std::cout << "Tube current (mA) : " << current << std::endl;
+        std::cout << "*****************" << std::endl;
+
+//        std::string result = ocr.recognize(proc.getOutputkV());
+//        std::cout << result << std::endl;
+//        std::cout << "  -------" << std::endl;
+
         int key = cv::waitKey(DELAY) & 255;
 
         if (key == 'q') {
@@ -148,8 +160,6 @@ static void adjustCamera(ImageInput* pImageInput) {
 		else {
 			proc.setInput(pImageInput->getImage());
 		}
-
-
 
 		key = cv::waitKey(1) & 255;
 

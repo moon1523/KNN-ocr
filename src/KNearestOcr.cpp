@@ -73,7 +73,6 @@ bool KNearestOcr::loadTrainingData() {
 char KNearestOcr::recognize(const cv::Mat& img) {
 	char cres = '?';
 	try {
-
 		if (_pModel.empty()) {
 			throw std::runtime_error("Model is not initialized");
 		}
@@ -106,7 +105,6 @@ std::string KNearestOcr::recognize(const std::vector<cv::Mat>& images) {
 			it != images.end(); ++it) {
 		result += recognize(*it);
 	}
-//	std::cout << result << std::endl;
 	return result;
 }
 
