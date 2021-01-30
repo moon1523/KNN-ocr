@@ -9,14 +9,18 @@
 
 class sortRectByX {
 public:
-	bool operator()(cv::Rect const& a, cv::Rect const& b) const {
-		return a.x < b.x;
-	}
+	bool operator()(cv::Rect const& a, cv::Rect const& b) const { return a.x < b.x; }
+};
+
+class sortRectByY {
+public:
+	bool operator()(cv::Rect const& a, cv::Rect const& b) const {return a.y < b.y;	}
 };
 
 ImageProcessor::ImageProcessor(const Config& config) :
 		_config(config), _debugWindow(false), _debugSkew(false), _debugDigits(false), _debugEdges(false),
-		_key(0), powerOn(false), _ocrkVmA(false) {
+		_key(0), powerOn(false), _ocrkVmA(false), _debugPower(false), _debugOCR(false) {
+	ofs.open("test1.txt");
 }
 
 void ImageProcessor::setInput(cv::Mat& img) { _img = img; }
@@ -34,7 +38,8 @@ void ImageProcessor::debugWindow(bool bval) {
 void ImageProcessor::debugSkew(bool bval) { _debugSkew = bval; }
 void ImageProcessor::debugEdges(bool bval) { _debugEdges = bval; }
 void ImageProcessor::debugDigits(bool bval) { _debugDigits = bval; }
-void ImageProcessor::debugPower(bool bval) { _debugDigits = bval; }
+void ImageProcessor::debugPower(bool bval) { _debugPower = bval; }
+void ImageProcessor::debugOCR(bool bval) { _debugOCR = bval; }
 void ImageProcessor::ocrkVmA(bool bval) { _ocrkVmA = bval; }
 
 int ImageProcessor::showImage() {
@@ -224,6 +229,8 @@ void ImageProcessor::findCounterDigits() {
 
     // sort bounding boxes from left to right
     std::sort(alignedBoundingBoxes.begin(), alignedBoundingBoxes.end(), sortRectByX());
+    // sort bounding boxes from bottom to top
+    std::sort(alignedBoundingBoxes.begin(), alignedBoundingBoxes.end(), sortRectByY());
 
     if (_debugEdges) {
         // draw contours
@@ -242,7 +249,7 @@ void ImageProcessor::findCounterDigits() {
     }
 }
 
-bool ImageProcessor::findCounterDigits(ROIBox* _roi)
+void ImageProcessor::findCounterDigits(ROIBox* _roi)
 {
 	cv::Mat edges = binaryFiltering();
 	if (_debugEdges) {
@@ -250,20 +257,20 @@ bool ImageProcessor::findCounterDigits(ROIBox* _roi)
 	}
 
 
-	cv::Mat powerScreen = edges(_roi->getROIBox()[_roi->getROIBox().size()-1]); // last ROI box must be power screen.
+	if (_debugPower) {
+		cv::Mat powerScreen = edges(_roi->getROIBox()[_roi->getROIBox().size()-1]); // last ROI box must be power screen.
 
-	powerOn = false;
-	for (int i=0; i<powerScreen.cols; i++) {
-		for (int j=0; j<powerScreen.rows; j++) {
-			uchar b = powerScreen.at<cv::Vec3b>(i,j)[0];
-			uchar g = powerScreen.at<cv::Vec3b>(i,j)[1];
-			uchar r = powerScreen.at<cv::Vec3b>(i,j)[2];
-			if ( b > 100 && g > 100 && r > 100 ) { powerOn = true; break;}
+		powerOn = false;
+		for (int i=0; i<powerScreen.cols; i++) {
+			for (int j=0; j<powerScreen.rows; j++) {
+				uchar b = powerScreen.at<cv::Vec3b>(i,j)[0];
+				uchar g = powerScreen.at<cv::Vec3b>(i,j)[1];
+				uchar r = powerScreen.at<cv::Vec3b>(i,j)[2];
+				if ( b > 100 && g > 100 && r > 100 ) { powerOn = true; break;}
+			}
+			if(powerOn) break;
 		}
-		if(powerOn) break;
 	}
-
-
 
 	cv::Mat img_ret = edges.clone();
 
@@ -275,8 +282,19 @@ bool ImageProcessor::findCounterDigits(ROIBox* _roi)
 	//filter contours by bounding rect size
 	filterContours(contours, boundingBoxes, filteredContours);
 
+//	// find bounding boxes that are aligned at y position
+//	std::vector<cv::Rect> alignedBoundingBoxes, tmpRes;
+//	for (std::vector<cv::Rect>::const_iterator ib = boundingBoxes.begin(); ib != boundingBoxes.end(); ++ib) {
+//		tmpRes.clear();
+//		findAlignedBoxes(ib, boundingBoxes.end(), tmpRes);
+//		if (tmpRes.size() > alignedBoundingBoxes.size()) {
+//			alignedBoundingBoxes = tmpRes;
+//		}
+//	}
+
 	// sort bounding boxes from left to right
 	std::sort(boundingBoxes.begin(), boundingBoxes.end(), sortRectByX());
+
 
 	if (_debugEdges) {
 		// draw contours
@@ -287,6 +305,7 @@ bool ImageProcessor::findCounterDigits(ROIBox* _roi)
 
 
 	// cut out found rectangles from edged image
+	std::cout << boundingBoxes.size() << std::endl;
 	for (int i = 0; i < boundingBoxes.size(); ++i) {
 		cv::Rect roi = boundingBoxes[i];
 		_digits.push_back(img_ret(roi));
@@ -294,6 +313,7 @@ bool ImageProcessor::findCounterDigits(ROIBox* _roi)
 		if (_debugDigits) {
 			cv::rectangle(_img, roi, cv::Scalar(0, 255, 0), 1);
 		}
+		ofs << _digits[i] << std::endl;
 	}
 
 
@@ -323,6 +343,4 @@ bool ImageProcessor::findCounterDigits(ROIBox* _roi)
 			_digits_mA.push_back(currScreen(mAroi));
 		}
 	}
-
-	return powerOn;
 }

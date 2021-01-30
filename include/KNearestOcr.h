@@ -32,6 +32,8 @@ private:
 	cv::Mat _responses;
 	cv::Ptr<cv::ml::KNearest> _pModel;
 	Config _config;
+
+	std::ofstream ofs;
 };
 
 #endif /* INCLUDE_KNEARESTOCR_H_ */

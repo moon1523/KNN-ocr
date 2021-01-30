@@ -18,8 +18,10 @@ bool calc=false;
 void onMouseCropImage(int event, int x, int y, int f, void *param);
 ROIBox* setROIBOX(ImageInput* pImageInput);
 
+
 static void testOcr(ImageInput* pImageInput) {
 	auto roi = setROIBOX(pImageInput);
+	bool debugOCR(false);
 
 	Config config;
     config.loadConfig();
@@ -52,23 +54,20 @@ static void testOcr(ImageInput* pImageInput) {
         proc.process(roi);
         bool powerOn = proc.getpowerOn();
 
-
-
-
-        std::cout << ">> Voltage OCR" << std::endl;
+//        std::cout << ">> Voltage OCR -----" << std::endl;
         std::string voltage = ocr.recognize(proc.getOutputkV());
-        std::cout << ">> Current OCR" << std::endl;
+//        std::cout << ">> Current OCR -----" << std::endl;
         std::string current = ocr.recognize(proc.getOutputmA());
-        std::cout << "*****************" << std::endl;
-        if(powerOn)	std::cout << "Power Status: On" << std::endl;
-		else		std::cout << "Power Status: Off" << std::endl;
-        std::cout << "Tube voltage (kV) : " << voltage << std::endl;
-        std::cout << "Tube current (mA) : " << current << std::endl;
-        std::cout << "*****************" << std::endl;
 
-//        std::string result = ocr.recognize(proc.getOutputkV());
-//        std::cout << result << std::endl;
-//        std::cout << "  -------" << std::endl;
+        if (std::stoi(voltage) && std::stoi(current)) {
+        	float currentF = (float)stoi(current) * 0.1;
+        	std::cout << "######### OCR RESULTS ########" << std::endl;
+			if(powerOn)	std::cout << "Power Status: On" << std::endl;
+			else		std::cout << "Power Status: Off" << std::endl;
+			std::cout << "Tube voltage (kV) : " << voltage << std::endl;
+			std::cout << "Tube current (mA) : " << currentF << std::endl;
+        } else { std::cout << "!!WARNING!! OCR rejected" << std::endl; }
+
 
         int key = cv::waitKey(DELAY) & 255;
 
@@ -81,7 +80,6 @@ static void testOcr(ImageInput* pImageInput) {
 
 
 static void learnOcr(ImageInput* pImageInput) {
-
 	int key = 0;
 	auto roi = setROIBOX(pImageInput);
 
@@ -172,6 +170,7 @@ static void adjustCamera(ImageInput* pImageInput) {
 			processImage = true;
 		}
 	}
+
 	if (key != 'q') {
 		std::cout << "Saving config\n";
 		config.saveConfig();
@@ -303,9 +302,6 @@ ROIBox* setROIBOX(ImageInput* pImageInput) {
 
 	return roi;
 }
-
-
-
 
 
 #endif /* INCLUDE_FUNCTIONS_H_ */

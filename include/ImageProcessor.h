@@ -37,6 +37,7 @@ public:
 	void debugEdges(bool bval = true);
 	void debugDigits(bool bval = true);
 	void debugPower(bool bval = true);
+	void debugOCR(bool bval = true);
 	void ocrkVmA(bool bval = true);
 	int  showImage();
 	void saveConfig();
@@ -48,7 +49,7 @@ public:
 private:
 	void rotate(double rotationDegrees);
 	void findCounterDigits();
-	bool findCounterDigits(ROIBox* roi);
+	void findCounterDigits(ROIBox* roi);
 	void findAlignedBoxes(std::vector<cv::Rect>::const_iterator begin,
 						  std::vector<cv::Rect>::const_iterator end, std::vector<cv::Rect>& result);
 	float detectSkew();
@@ -72,10 +73,13 @@ private:
 	bool _debugEdges;
 	bool _debugDigits;
 	bool _debugPower;
+	bool _debugOCR;
 	bool _ocrkVmA;
 	bool powerOn;
 
 	int _key;
+
+	std::ofstream ofs;
 };
 
 #endif /* INCLUDE_IMAGEPROCESSOR_H_ */

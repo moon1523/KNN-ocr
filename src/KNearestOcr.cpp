@@ -4,13 +4,14 @@
 #include <opencv2/ml/ml.hpp>
 
 #include <exception>
-
+#include <fstream>
+#include <algorithm>
 
 #include "KNearestOcr.h"
 
 KNearestOcr::KNearestOcr(const Config& config) :
 _pModel(), _config(config) {
-
+	ofs.open("test.txt");
 }
 
 KNearestOcr::~KNearestOcr() {
@@ -25,17 +26,17 @@ int KNearestOcr::learn(const cv::Mat& img) {
 		key -= 128; // numeric keypad
 	}
 	if ((key >= '0' && key <= '9') || key == '.') {
-		std::cout << (float) key - '0' << std::endl;
-		std::cout << key << std::endl;
 		_responses.push_back(cv::Mat(1, 1, CV_32F, (float) key - '0'));
 		_samples.push_back(prepareSample(img));
-//		std::cout << char(key) << std::flush;
+		std::cout << char(key) << std::flush;
 	}
 	return key;
 }
 
 // Learn a vector of digits.
 int KNearestOcr::learn(const std::vector<cv::Mat>& images) {
+//	for (auto itr:images)
+//		ofs << itr << std::endl;
 	int key = 0;
 	for (std::vector<cv::Mat>::const_iterator it = images.begin();
 			it < images.end() && key != 's' && key != 'q'; ++it) {
@@ -72,29 +73,40 @@ bool KNearestOcr::loadTrainingData() {
 // Recognize a single digit.
 char KNearestOcr::recognize(const cv::Mat& img) {
 	char cres = '?';
-	try {
-		if (_pModel.empty()) {
-			throw std::runtime_error("Model is not initialized");
-		}
-		cv::Mat results, neighborResponses, dists;
+	int k_idx(3);
 
-		float result = _pModel->findNearest(prepareSample(img), 5, results, neighborResponses, dists);
+	if (_pModel.empty()) {
+		throw std::runtime_error("Model is not initialized");
+	}
 
-		if (0 == int(neighborResponses.at<float>(0, 0) - neighborResponses.at<float>(0, 1))
-				&& dists.at<float>(0, 0) < _config.getOcrMaxDist()) {
-			// valid character if both neighbors have the same value and distance is below ocrMaxDist
-			cres = '0' + (int) result;
-		}
-		else {
-			std::cout << "OCR rejected: " << (int) result << std::endl;
-		}
-		std::cout << "results: " << results << std::endl;
-		std::cout << "neighborResponses: " << neighborResponses << std::endl;
-		std::cout << "dists: " << dists << std::endl;
+	cv::Mat results, neighborResponses, dists;
+	using namespace std;
+	ofs << prepareSample(img) << endl;
+	float result = _pModel->findNearest(prepareSample(img), k_idx, results, neighborResponses, dists);
+
+	// Find majority character of neigborResponses set. (k_idx should be odd number to determine the character)
+	std::vector<int> neighborResponsesCount; // 0,1,2,3,4,5,6,7,8,9,'.'
+	neighborResponsesCount.clear();
+	for (int i=0; i<11; i++) neighborResponsesCount.push_back(0);
+	for (int i=0; i < neighborResponses.cols; i++) {
+		if ((int)neighborResponses.at<float>(0,i) == -2) { neighborResponsesCount[10]++; continue; }
+		neighborResponsesCount[(int)neighborResponses.at<float>(0,i)]++;
 	}
-	catch (std::exception & e) {
-		std::cerr << e.what() << std::endl;
-	}
+
+	int maxResponse = *max_element(neighborResponsesCount.begin(), neighborResponsesCount.end());
+	for (int i=0;i<neighborResponsesCount.size();i++) {
+		if (neighborResponsesCount[i] == maxResponse) {
+			if (i == 10) { results = -2; break; }
+			else 		 { results =  i; break; }
+		}
+	}	// set value
+
+	cres = '0' + (int) result;
+
+	std::cout << "results: " << results << std::endl;
+	std::cout << "neighborResponses: " << neighborResponses << std::endl;
+	std::cout << "dists: " << dists << std::endl;
+
 	return cres;
 }
 
@@ -108,12 +120,13 @@ std::string KNearestOcr::recognize(const std::vector<cv::Mat>& images) {
 	return result;
 }
 
-
 // Prepare an image of a digit to work as a sample for the model.
 cv::Mat KNearestOcr::prepareSample(const cv::Mat& img) {
 	cv::Mat roi, sample;
 	cv::resize(img, roi, cv::Size(10, 10));
+	ofs << roi << std::endl;
 	roi.reshape(1,1).convertTo(sample, CV_32F);
+
 	return sample;
 }
 
