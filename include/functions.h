@@ -40,7 +40,10 @@ static void testOcr(ImageInput* pImageInput) {
     std::cout << "<q> to quit.\n";
 
     cv::Mat imgNone = cv::Mat::zeros(pImageInput->getImage().rows, pImageInput->getImage().cols, CV_8UC3);
+
+    int frameNo(0);
     while (pImageInput->nextImage()) {
+    	std::cout << "Frame " << frameNo++ << std::endl;
 		cv::Mat imgCopy = imgNone;
 
 		for (int k=0; k<blackBox.size(); k++) {
@@ -54,19 +57,38 @@ static void testOcr(ImageInput* pImageInput) {
         proc.process(roi);
         bool powerOn = proc.getpowerOn();
 
+        std::cout << "######### KNN RESULTS ########" << std::endl;
 //        std::cout << ">> Voltage OCR -----" << std::endl;
         std::string voltage = ocr.recognize(proc.getOutputkV());
 //        std::cout << ">> Current OCR -----" << std::endl;
         std::string current = ocr.recognize(proc.getOutputmA());
 
-        if (std::stoi(voltage) && std::stoi(current)) {
-        	float currentF = (float)stoi(current) * 0.1;
+
+        if (voltage.find('.') != std::string::npos || current.find('.') != std::string::npos) {
         	std::cout << "######### OCR RESULTS ########" << std::endl;
 			if(powerOn)	std::cout << "Power Status: On" << std::endl;
 			else		std::cout << "Power Status: Off" << std::endl;
 			std::cout << "Tube voltage (kV) : " << voltage << std::endl;
-			std::cout << "Tube current (mA) : " << currentF << std::endl;
-        } else { std::cout << "!!WARNING!! OCR rejected" << std::endl; }
+			std::cout << "Tube current (mA) : " << current << std::endl;
+			std::cout << "!!WARNING!! point is recognized" << std::endl;
+        }
+        else {
+        	float currentF = (float)stoi(current) * 0.1;
+			std::cout << "######### OCR RESULTS ########" << std::endl;
+			if(powerOn)	std::cout << "Power Status: On" << std::endl;
+			else		std::cout << "Power Status: Off" << std::endl;
+			std::cout << "Tube voltage (kV) : " << stoi(voltage) << std::endl;
+			std::cout << "Tube current (mA) : " << currentF << std::endl << std::endl;
+        }
+
+////        if (std::stoi(voltage) && std::stoi(current)) {
+//        	float currentF = (float)stoi(current) * 0.1;
+//        	std::cout << "######### OCR RESULTS ########" << std::endl;
+//			if(powerOn)	std::cout << "Power Status: On" << std::endl;
+//			else		std::cout << "Power Status: Off" << std::endl;
+//			std::cout << "Tube voltage (kV) : " << voltage << std::endl;
+//			std::cout << "Tube current (mA) : " << current << std::endl << std::endl;
+////        } else { std::cout << "!!WARNING!! OCR rejected" << std::endl; }
 
 
         int key = cv::waitKey(DELAY) & 255;

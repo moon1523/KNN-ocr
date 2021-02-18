@@ -4,8 +4,8 @@ rotationDegrees: 0
 cannyThreshold1: 150
 cannyThreshold2: 200
 digitMinHeight: 10
-digitMaxHeight: 100
+digitMaxHeight: 50
 digitYAlignment: 5
 ocrMaxDist: 1000000.
 trainingDataFilename: "training.yml"
-binaryThreshold: 100
+binaryThreshold: 150

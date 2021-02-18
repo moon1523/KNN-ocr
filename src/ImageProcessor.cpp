@@ -305,7 +305,7 @@ void ImageProcessor::findCounterDigits(ROIBox* _roi)
 
 
 	// cut out found rectangles from edged image
-	std::cout << boundingBoxes.size() << std::endl;
+//	std::cout << boundingBoxes.size() << std::endl;
 	for (int i = 0; i < boundingBoxes.size(); ++i) {
 		cv::Rect roi = boundingBoxes[i];
 		_digits.push_back(img_ret(roi));
