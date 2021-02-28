@@ -87,6 +87,7 @@ bool DirectoryInput::nextImage() {
 
 CameraInput::CameraInput(int device) {
     _capture.open(device);
+    std::cout << "Camera FPS: " <<_capture.get(cv::CAP_PROP_FPS) << std::endl;;
 }
 
 bool CameraInput::nextImage() {

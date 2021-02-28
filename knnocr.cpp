@@ -40,8 +40,11 @@ int main(int argc, char** argv) {
 	std::string logLevel = "ERROR";
 	char cmd = 0;
 	int cmdCount = 0;
+	int cam = 0;
 
-	while ((opt = getopt(argc, argv, "i:c:ltaws:o:v:h")) != -1) {
+	// recordData(atoi(argv[2]));
+
+	while ((opt = getopt(argc, argv, "i:c:ltaws:o:v:h:r")) != -1) {
 		switch (opt) {
 			case 'i':
 				pImageInput = new DirectoryInput(Directory(optarg, ".png"));
@@ -50,6 +53,7 @@ int main(int argc, char** argv) {
 			case 'c':
 				pImageInput = new CameraInput(atoi(optarg));
 				inputCount++;
+				cam = atoi(optarg);
 				break;
 			case 'l':
 			case 't':
@@ -74,6 +78,10 @@ int main(int argc, char** argv) {
 				usage(argv[0]);
 				exit(EXIT_FAILURE);
 				break;
+			case 'r':
+				cmd = opt;
+				cmdCount++;
+				break;
 		}
 	}
 	if (inputCount != 1) {
@@ -96,7 +104,7 @@ int main(int argc, char** argv) {
 			learnOcr(pImageInput);
 			break;
 		case 't':
-			testOcr(pImageInput);
+			testOcr(pImageInput, cam);
 			break;
 		case 'a':
 			adjustCamera(pImageInput);
@@ -104,9 +112,16 @@ int main(int argc, char** argv) {
 		case 'w':
 			writeData(pImageInput);
 			break;
+		// case 'r':
+		// 	std::cout << "Record Video!!" << std::endl;
+		// 	recordData(atoi(optarg));
+		// 	break;
+
+
 	}
 
 	delete pImageInput;
 	exit(EXIT_SUCCESS);
 }
+
 

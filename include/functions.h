@@ -3,6 +3,8 @@
 
 #include <fstream>
 #include <opencv2/highgui.hpp>
+#include <opencv2/videoio.hpp>
+
 #include "Plausi.h"
 #include "KNearestOcr.h"
 
@@ -17,9 +19,10 @@ bool calc=false;
 
 void onMouseCropImage(int event, int x, int y, int f, void *param);
 ROIBox* setROIBOX(ImageInput* pImageInput);
+void recordData(int cam);
 
 
-static void testOcr(ImageInput* pImageInput) {
+static void testOcr(ImageInput* pImageInput, int cam) {
 	auto roi = setROIBOX(pImageInput);
 	bool debugOCR(false);
 
@@ -41,10 +44,27 @@ static void testOcr(ImageInput* pImageInput) {
 
     cv::Mat imgNone = cv::Mat::zeros(pImageInput->getImage().rows, pImageInput->getImage().cols, CV_8UC3);
 
+	// Recording ============
+	double fps = 1/(DELAY * 0.001);
+	int width = pImageInput->getImage().cols;
+	int height = pImageInput->getImage().rows;
+	std::cout << width << " " << height << std::endl;
+	int fourcc = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');
+
+	cv::VideoWriter outputVideo;
+	outputVideo.open("record.avi", fourcc, fps, cv::Size(width, height), true);
+
+	if (!outputVideo.isOpened()) { std::cerr << "Recording Initialization Error" << std::endl; exit(1); }
+	// ===============
+
+
     int frameNo(0);
-    while (pImageInput->nextImage()) {
+    while (1) {
+		pImageInput->nextImage();
     	std::cout << "Frame " << frameNo++ << std::endl;
 		cv::Mat imgCopy = imgNone;
+		
+		outputVideo.write(pImageInput->getImage());
 
 		for (int k=0; k<blackBox.size(); k++) {
 			for (int i=blackBox[k].x; i< blackBox[k].x + blackBox[k].width; i++) {
@@ -64,13 +84,14 @@ static void testOcr(ImageInput* pImageInput) {
         std::string current = ocr.recognize(proc.getOutputmA());
 
 
-        if (voltage.find('.') != std::string::npos || current.find('.') != std::string::npos) {
+        if (voltage.find('.') != std::string::npos || current.find('.') != std::string::npos
+		 	||voltage.empty() || current.empty()) {
         	std::cout << "######### OCR RESULTS ########" << std::endl;
 			if(powerOn)	std::cout << "Power Status: On" << std::endl;
 			else		std::cout << "Power Status: Off" << std::endl;
 			std::cout << "Tube voltage (kV) : " << voltage << std::endl;
 			std::cout << "Tube current (mA) : " << current << std::endl;
-			std::cout << "!!WARNING!! point is recognized" << std::endl;
+			std::cout << "!!WARNING!! point is recognized or character is not recognized" << std::endl;
         }
         else {
         	float currentF = (float)stoi(current) * 0.1;
@@ -80,16 +101,6 @@ static void testOcr(ImageInput* pImageInput) {
 			std::cout << "Tube voltage (kV) : " << stoi(voltage) << std::endl;
 			std::cout << "Tube current (mA) : " << currentF << std::endl << std::endl;
         }
-
-////        if (std::stoi(voltage) && std::stoi(current)) {
-//        	float currentF = (float)stoi(current) * 0.1;
-//        	std::cout << "######### OCR RESULTS ########" << std::endl;
-//			if(powerOn)	std::cout << "Power Status: On" << std::endl;
-//			else		std::cout << "Power Status: Off" << std::endl;
-//			std::cout << "Tube voltage (kV) : " << voltage << std::endl;
-//			std::cout << "Tube current (mA) : " << current << std::endl << std::endl;
-////        } else { std::cout << "!!WARNING!! OCR rejected" << std::endl; }
-
 
         int key = cv::waitKey(DELAY) & 255;
 
@@ -325,5 +336,36 @@ ROIBox* setROIBOX(ImageInput* pImageInput) {
 	return roi;
 }
 
+void recordData(int cam) {
+	std::cout << "Record Video" << std::endl;
+	
+	cv::Mat frame;
+	cv::VideoCapture cap(cam);
+
+	if(!cap.isOpened()) { std::cerr << "Camera is not opened" << std::endl; exit(1); }
+
+	
+	int fps = cap.get(cv::CAP_PROP_FPS);
+	int width = cap.get(cv::CAP_PROP_FRAME_WIDTH);
+	int height = cap.get(cv::CAP_PROP_FRAME_HEIGHT);
+	int fourcc = cv::VideoWriter::fourcc('M', 'J', 'P', 'G');
+
+	cv::VideoWriter outputVideo;
+	outputVideo.open("output.avi", fourcc, fps, cv::Size(width, height), true);
+
+	if (!outputVideo.isOpened()) { std::cerr << "Recording Initialization Error" << std::endl; exit(1); }
+
+	while(1) {
+		cap.read(frame);
+		if (frame.empty()) { std::cerr << "Capture Failed" << std::endl; break;}
+
+		imshow("Live", frame);
+
+		outputVideo.write(frame);
+
+		int wait = int(1.0 / fps*1000);
+		if (cv::waitKey(wait) >= 0) break;
+	}
+}
 
 #endif /* INCLUDE_FUNCTIONS_H_ */
