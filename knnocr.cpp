@@ -11,11 +11,10 @@
 #include "ImageInput.h"
 #include "ImageProcessor.h"
 #include "KNearestOcr.h"
-#include "Plausi.h"
 #include "functions.h"
 
 static void usage(const char* progname) {
-    std::cout << "Program to read and recognize the counter of an electricity meter with OpenCV.\n";
+    std::cout << "Program to read and recognize the C-arm screen data with OpenCV.\n";
     std::cout << "Usage: " << progname << " [-i <dir>|-c <cam>] [-l|-t|-a|-w|-o <dir>] [-s <delay>] [-v <level>\n";
     std::cout << "\nImage input:\n";
     std::cout << "  -i <image directory> : read image files (png) from directory.\n";
@@ -39,10 +38,8 @@ int main(int argc, char** argv) {
 	std::string outputDir;
 	std::string logLevel = "ERROR";
 	char cmd = 0;
-	int cmdCount = 0;
-	int cam = 0;
-
-	// recordData(atoi(argv[2]));
+	int  cmdCount = 0;
+	int  cam = 0;
 
 	while ((opt = getopt(argc, argv, "i:c:ltaws:o:v:h:r")) != -1) {
 		switch (opt) {
@@ -78,10 +75,6 @@ int main(int argc, char** argv) {
 				usage(argv[0]);
 				exit(EXIT_FAILURE);
 				break;
-			case 'r':
-				cmd = opt;
-				cmdCount++;
-				break;
 		}
 	}
 	if (inputCount != 1) {
@@ -112,16 +105,8 @@ int main(int argc, char** argv) {
 		case 'w':
 			writeData(pImageInput);
 			break;
-		// case 'r':
-		// 	std::cout << "Record Video!!" << std::endl;
-		// 	recordData(atoi(optarg));
-		// 	break;
-
-
 	}
 
 	delete pImageInput;
 	exit(EXIT_SUCCESS);
 }
-
-

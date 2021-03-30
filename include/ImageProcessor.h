@@ -15,7 +15,9 @@ class ROIBox
 public:
 	ROIBox() : roiBox(0) { }
 	std::vector<cv::Rect> getROIBox() { return roiBox; }
-	void setROIBox(std::vector<cv::Rect>& _roiBox) { roiBox = _roiBox; std::cout << "ROI box #: " << roiBox.size() << std::endl; }
+	void setROIBox(std::vector<cv::Rect>& _roiBox) { 
+		roiBox = _roiBox; std::cout << "ROI box #: " << roiBox.size() << std::endl; 
+	}
 private:
 	std::vector<cv::Rect> roiBox;
 };

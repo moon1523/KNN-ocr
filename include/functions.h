@@ -5,7 +5,6 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/videoio.hpp>
 
-#include "Plausi.h"
 #include "KNearestOcr.h"
 
 int DELAY = 500;
@@ -225,8 +224,6 @@ static void writeData(ImageInput* pImageInput) {
 	config.loadConfig();
 	ImageProcessor proc(config);
 
-	Plausi plausi;
-
 	KNearestOcr ocr(config);
 	if (! ocr.loadTrainingData()) {
 		std::cout << "Failed to load OCR training data\n";
@@ -240,9 +237,6 @@ static void writeData(ImageInput* pImageInput) {
 		proc.process();
 
 		std::string result = ocr.recognize(proc.getOutput());
-		if (plausi.check(result, pImageInput->getTime())) {
-			plausi.getCheckedValue();
-		}
 
 		usleep(DELAY*1000L);
 
